@@ -104,7 +104,6 @@
         <item name="materialColorPrimaryFixed">@color/material_color_primary_fixed</item>
         <item name="materialColorOnSecondary">@color/material_color_on_secondary</item>
         <item name="materialColorOnTertiary">@color/material_color_on_tertiary</item>
-        <item name="materialColorSurfaceDim">@color/material_color_surface_dim</item>
         <item name="materialColorSurfaceBright">@color/material_color_surface_bright</item>
         <item name="materialColorOnError">@color/material_color_on_error</item>
         <item name="materialColorSurface">@color/material_color_surface</item>
