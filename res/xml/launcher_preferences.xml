@@ -106,6 +106,18 @@
             android:min="23"
             settings:units="px"
             android:defaultValue="23" />
+    
+    <Preference
+        android:key="icons"
+        android:title="@string/icons_category_title"
+        android:summary="@string/icons_category_summary"
+        android:icon="@drawable/ic_settings_icons"
+        android:layout="@layout/settings_layout">
+    <intent
+            android:action="android.settings.APPLICATION_DETAILS_SETTINGS"
+            android:targetPackage="com.android.launcher3"
+            android:targetClass="com.android.launcher3.settings.SettingsIcons" />
+    </Preference>
 
         <Preference
             android:persistent="false"
