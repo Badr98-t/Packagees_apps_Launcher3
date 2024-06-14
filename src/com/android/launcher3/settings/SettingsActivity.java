@@ -20,12 +20,8 @@ import static androidx.core.view.accessibility.AccessibilityNodeInfoCompat.ACTIO
 
 import static com.android.launcher3.config.FeatureFlags.IS_STUDIO_BUILD;
 
-import static com.android.launcher3.Utilities.KEY_DOCK_SEARCH;
-import static com.android.launcher3.Utilities.KEY_DT_GESTURE;
-import static com.android.launcher3.Utilities.KEY_SMARTSPACE;
-import static com.android.launcher3.states.RotationHelper.ALLOW_ROTATION_PREFERENCE_KEY;
-
-import static co.aospa.launcher.OverlayCallbackImpl.KEY_ENABLE_MINUS_ONE;
+import static com.android.launcher3.BuildConfig.IS_DEBUG_DEVICE;
+import static com.android.launcher3.BuildConfig.IS_STUDIO_BUILD;
 
 import android.content.Context;
 import android.content.Intent;
@@ -59,18 +55,6 @@ import com.android.launcher3.LauncherAppState;
 import com.android.launcher3.LauncherFiles;
 import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.R;
-import com.android.launcher3.Utilities;
-import com.android.launcher3.config.FeatureFlags;
-import com.android.launcher3.model.WidgetsModel;
-import com.android.launcher3.states.RotationHelper;
-import com.android.launcher3.uioverrides.flags.DeveloperOptionsFragment;
-import com.android.launcher3.uioverrides.plugins.PluginManagerWrapper;
-import com.android.launcher3.util.DisplayController;
-
-import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity;
-
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Settings activity for Launcher. Currently implements the following setting: Allow rotation
@@ -87,10 +71,13 @@ public class SettingsActivity extends CollapsingToolbarBaseActivity
     private static final String DEVELOPER_OPTIONS_KEY = "pref_developer_options";
     private static final String FLAGS_PREFERENCE_KEY = "flag_toggler";
 
-    private static final String NOTIFICATION_DOTS_PREFERENCE_KEY = "pref_icon_badging";
+    public static final String EXTRA_FRAGMENT_ARGS = ":settings:fragment_args";
 
-    public static final String EXTRA_FRAGMENT_ARG_KEY = ":settings:fragment_args_key";
-    public static final String EXTRA_SHOW_FRAGMENT_ARGS = ":settings:show_fragment_args";
+    // Intent extra to indicate the pref-key to highlighted when opening the settings activity
+    public static final String EXTRA_FRAGMENT_HIGHLIGHT_KEY = ":settings:fragment_args_key";
+    // Intent extra to indicate the pref-key of the root screen when opening the settings activity
+    public static final String EXTRA_FRAGMENT_ROOT_KEY = ARG_PREFERENCE_ROOT;
+
     private static final int DELAY_HIGHLIGHT_DURATION_MILLIS = 600;
     public static final String SAVE_HIGHLIGHTED_KEY = "android:preference_highlighted";
 
@@ -153,23 +140,7 @@ public class SettingsActivity extends CollapsingToolbarBaseActivity
     }
 
     @Override
-    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        switch (key) {
-            case KEY_DOCK_SEARCH:
-            case KEY_SMARTSPACE:
-            case Utilities.KEY_BLUR_DEPTH:
-                LauncherAppState.getInstanceNoCreate().setNeedsRestart();
-                break;
-            case KEY_DT_GESTURE:
-                Settings.System.putIntForUser(getContentResolver(),
-                        Settings.System.GESTURE_DOUBLE_TAP_SLEEP,
-                        sharedPreferences.getBoolean(key, true) ? 1 : 0,
-                        UserHandle.USER_CURRENT);
-                break;
-            default:
-                break;
-        }
-    }
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) { }
 
     private boolean startPreference(String fragment, Bundle args, String key) {
         if (Utilities.ATLEAST_P && getSupportFragmentManager().isStateSaved()) {
@@ -219,8 +190,11 @@ public class SettingsActivity extends CollapsingToolbarBaseActivity
 
         private String mHighLightKey;
         private boolean mPreferenceHighlighted = false;
-        private Preference mDeveloperOptionPref;
-        private PreferenceGroup mDeveloperOptionPrefGroup;
+
+        @Override
+        public void onCreate(@Nullable Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+        }
 
         @Override
         public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -305,79 +279,8 @@ public class SettingsActivity extends CollapsingToolbarBaseActivity
          * Initializes a preference. This is called for every preference. Returning false here
          * will remove that preference from the list.
          */
-        protected boolean initPreference(Preference preference, PreferenceGroup group) {
-            switch (preference.getKey()) {
-                case NOTIFICATION_DOTS_PREFERENCE_KEY:
-                    return !WidgetsModel.GO_DISABLE_NOTIFICATION_DOTS;
-
-                case ALLOW_ROTATION_PREFERENCE_KEY:
-                    DisplayController.Info info =
-                            DisplayController.INSTANCE.get(getContext()).getInfo();
-                    if (info.isTablet(info.realBounds)) {
-                        // Launcher supports rotation by default. No need to show this setting.
-                        return false;
-                    }
-                    // Initialize the UI once
-                    preference.setDefaultValue(RotationHelper.getAllowRotationDefaultValue(info));
-                    return true;
-
-                case FLAGS_PREFERENCE_KEY:
-                    // Only show flag toggler UI if this build variant implements that.
-                    return FeatureFlags.showFlagTogglerUi(getContext());
-
-                case DEVELOPER_OPTIONS_KEY:
-                    mDeveloperOptionPref = preference;
-                    mDeveloperOptionPrefGroup = group;
-                    return updateDeveloperOption();
-
-                case KEY_ENABLE_MINUS_ONE:
-                    preference.setEnabled(isGsaEnabled());
-                    return true;
-
-                case KEY_DOCK_SEARCH:
-                    preference.setEnabled(isGsaEnabled());
-                    return true;
-
-                case KEY_SMARTSPACE:
-                    preference.setEnabled(isGsaEnabled() && isAsiEnabled());
-                    return true;
-
-                case KEY_SUGGESTIONS:
-                    preference.setEnabled(isAsiEnabled());
-                    return true;
-            }
-
+        protected boolean initPreference(Preference preference) {
             return true;
-        }
-
-        /**
-         * Show if plugins are enabled or flag UI is enabled.
-         * @return True if we should show the preference option.
-         */
-        private boolean updateDeveloperOption() {
-            boolean showPreference = FeatureFlags.showFlagTogglerUi(getContext())
-                    || PluginManagerWrapper.hasPlugins(getContext());
-            if (mDeveloperOptionPref != null && mDeveloperOptionPrefGroup != null) {
-                mDeveloperOptionPref.setEnabled(showPreference);
-                if (showPreference) {
-                    getPreferenceScreen().addPreference(mDeveloperOptionPrefGroup);
-                    mDeveloperOptionPrefGroup.addPreference(mDeveloperOptionPref);
-                } else {
-                    mDeveloperOptionPrefGroup.removePreference(mDeveloperOptionPref);
-                    if (mDeveloperOptionPrefGroup.getPreferenceCount() == 0) {
-                        getPreferenceScreen().removePreference(mDeveloperOptionPrefGroup);
-                    }
-                }
-            }
-            return showPreference;
-        }
-
-        private boolean isGsaEnabled() {
-            return Utilities.isGSAEnabled(getContext());
-        }
-
-        private boolean isAsiEnabled() {
-            return Utilities.isASIEnabled(getContext());
         }
 
         @Override
