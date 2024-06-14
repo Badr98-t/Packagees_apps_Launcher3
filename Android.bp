@@ -85,7 +85,7 @@ android_library {
         "androidx.preference_preference",
         "SystemUISharedLib",
         "animationlib",
-        "launcher-testing-shared",
+        "launcher-testing-shared"
     ],
     srcs: [
         "tests/tapl/**/*.java",
@@ -175,6 +175,7 @@ android_library {
         "bcsmartspace-google",
         "SystemUIPluginLib",
         "animationlib"
+        "SettingsLib"
     ],
     manifest: "AndroidManifest-common.xml",
     sdk_version: "current",

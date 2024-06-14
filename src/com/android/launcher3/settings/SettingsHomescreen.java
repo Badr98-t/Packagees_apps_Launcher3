@@ -103,7 +103,7 @@ import static com.stag.launcher.OverlayCallbackImpl.KEY_ENABLE_MINUS_ONE;
                      getString(R.string.home_screen_settings_fragment_name));
              f.setArguments(args);
              // Display the fragment as the main content.
-             fm.beginTransaction().replace(com.android.settingslib.widget.R.id.content_frame, f).commit();
+             fm.beginTransaction().replace(R.id.content_frame, f).commit();
          }
          LauncherPrefs.getPrefs(getApplicationContext()).registerOnSharedPreferenceChangeListener(this);
      }
@@ -121,7 +121,7 @@ import static com.stag.launcher.OverlayCallbackImpl.KEY_ENABLE_MINUS_ONE;
      }
  
      private boolean startPreference(String fragment, Bundle args, String key) {
-         if (Utilities.ATLEAST_P && getSupportFragmentManager().isStateSaved()) {
+         if (getSupportFragmentManager().isStateSaved()) {
              // Sometimes onClick can come after onPause because of being posted on the handler.
              // Skip starting new preferences in that case.
              return false;
@@ -193,14 +193,6 @@ import static com.stag.launcher.OverlayCallbackImpl.KEY_ENABLE_MINUS_ONE;
              }
  
              if (getActivity() != null && !TextUtils.isEmpty(getPreferenceScreen().getTitle())) {
-                 if (getPreferenceScreen().getTitle().equals(
-                         getResources().getString(R.string.search_pref_screen_title))){
-                     DeviceProfile mDeviceProfile = InvariantDeviceProfile.INSTANCE.get(
-                             getContext()).getDeviceProfile(getContext());
-                     getPreferenceScreen().setTitle(mDeviceProfile.isTablet ?
-                             R.string.search_pref_screen_title_tablet
-                             : R.string.search_pref_screen_title);
-                 }
                  getActivity().setTitle(getPreferenceScreen().getTitle());
              }
          }
