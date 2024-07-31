@@ -21,12 +21,18 @@ import static com.android.launcher3.logging.StatsLogManager.LAUNCHER_STATE_OVERV
 import android.content.Context;
 import android.graphics.Rect;
 import android.os.SystemProperties;
+import android.view.CrossWindowBlurListeners;
+
+import androidx.core.graphics.ColorUtils;
+
+import androidx.core.graphics.ColorUtils;
 
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.R;
+import com.android.launcher3.Utilities;
 import com.android.launcher3.util.DisplayController;
 import com.android.launcher3.util.Themes;
 import com.android.quickstep.util.LayoutUtils;
@@ -147,7 +153,10 @@ public class OverviewState extends LauncherState {
 
     @Override
     public int getWorkspaceScrimColor(Launcher launcher) {
-        return Themes.getAttrColor(launcher, R.attr.overviewScrimColor);
+        return CrossWindowBlurListeners.getInstance().isCrossWindowBlurEnabled()
+                ? launcher.getResources().getColor(R.color.overview_blur_scrim)
+                : ColorUtils.setAlphaComponent(
+                Themes.getAttrColor(launcher, R.attr.overviewScrimColor), 70 * 255 / 100);
     }
 
     @Override

@@ -184,34 +184,31 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
     private static final String CONTROL_REMOTE_APP_TRANSITION_PERMISSION =
             "android.permission.CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS";
 
-    public static final long APP_LAUNCH_DURATION = 500;
+    private static final long APP_LAUNCH_DURATION;
 
     private static final long APP_LAUNCH_ALPHA_DURATION = 50;
     private static final long APP_LAUNCH_ALPHA_START_DELAY = 25;
 
-    public static final int ANIMATION_NAV_FADE_IN_DURATION = 266;
-    public static final int ANIMATION_NAV_FADE_OUT_DURATION = 133;
-    public static final long ANIMATION_DELAY_NAV_FADE_IN =
-            APP_LAUNCH_DURATION - ANIMATION_NAV_FADE_IN_DURATION;
-    public static final Interpolator NAV_FADE_IN_INTERPOLATOR =
-            new PathInterpolator(0f, 0f, 0f, 1f);
-    public static final Interpolator NAV_FADE_OUT_INTERPOLATOR =
-            new PathInterpolator(0.2f, 0f, 1f, 1f);
+    public static final int ANIMATION_NAV_FADE_IN_DURATION;
+    public static final int ANIMATION_NAV_FADE_OUT_DURATION;
+    public static final long ANIMATION_DELAY_NAV_FADE_IN;
+    public static final Interpolator NAV_FADE_IN_INTERPOLATOR;
+    public static final Interpolator NAV_FADE_OUT_INTERPOLATOR;
 
-    public static final int RECENTS_LAUNCH_DURATION = 336;
-    private static final int LAUNCHER_RESUME_START_DELAY = 100;
-    private static final int CLOSING_TRANSITION_DURATION_MS = 250;
-    public static final int SPLIT_LAUNCH_DURATION = 370;
-    public static final int SPLIT_DIVIDER_ANIM_DURATION = 100;
+    public static final int RECENTS_LAUNCH_DURATION;
+    private static final int LAUNCHER_RESUME_START_DELAY;
+    private static final int CLOSING_TRANSITION_DURATION_MS;
+    public static final int SPLIT_LAUNCH_DURATION;
+    public static final int SPLIT_DIVIDER_ANIM_DURATION;
 
-    public static final int CONTENT_ALPHA_DURATION = 217;
+    public static final int CONTENT_ALPHA_DURATION;
     public static final int TRANSIENT_TASKBAR_TRANSITION_DURATION = 417;
     public static final int TASKBAR_TO_APP_DURATION = 600;
     // TODO(b/236145847): Tune TASKBAR_TO_HOME_DURATION to 383 after conflict with unlock animation
     // is solved.
     public static final int TASKBAR_TO_HOME_DURATION = 300;
-    protected static final int CONTENT_SCALE_DURATION = 350;
-    protected static final int CONTENT_SCRIM_DURATION = 350;
+    protected static final int CONTENT_SCALE_DURATION;
+    protected static final int CONTENT_SCRIM_DURATION;
 
     private static final int MAX_NUM_TASKS = 5;
 
@@ -257,6 +254,25 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
 
     private final Interpolator mOpeningXInterpolator;
     private final Interpolator mOpeningInterpolator;
+
+    static {
+        long duration = getDuration(500);
+        APP_LAUNCH_DURATION = duration;
+        int duration2 = getDuration(266);
+        ANIMATION_NAV_FADE_IN_DURATION = duration2;
+        ANIMATION_NAV_FADE_OUT_DURATION = getDuration(133);
+        ANIMATION_DELAY_NAV_FADE_IN = duration - duration2;
+        NAV_FADE_IN_INTERPOLATOR = new PathInterpolator(0.0f, 0.0f, 0.0f, 1.0f);
+        NAV_FADE_OUT_INTERPOLATOR = new PathInterpolator(0.2f, 0.0f, 1.0f, 1.0f);
+        RECENTS_LAUNCH_DURATION = getDuration(336);
+        LAUNCHER_RESUME_START_DELAY = getDuration(100);
+        CLOSING_TRANSITION_DURATION_MS = getDuration(250);
+        SPLIT_LAUNCH_DURATION = getDuration(370);
+        SPLIT_DIVIDER_ANIM_DURATION = getDuration(100);
+        CONTENT_ALPHA_DURATION = getDuration(217);
+        CONTENT_SCALE_DURATION = getDuration(350);
+        CONTENT_SCRIM_DURATION = getDuration(350);
+    }
 
     public QuickstepTransitionManager(Context context) {
         mLauncher = Launcher.cast(Launcher.getLauncher(context));
@@ -882,11 +898,7 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
 
         // If app targets are translucent, do not animate the background as it causes a visible
         // flicker when it resets itself at the end of its animation.
-        if (appTargetsAreTranslucent || !launcherClosing) {
-            animatorSet.play(appAnimator);
-        } else {
-            animatorSet.playTogether(appAnimator, getBackgroundAnimator());
-        }
+        animatorSet.play(appAnimator);
         return animatorSet;
     }
 
@@ -1023,55 +1035,15 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
 
         // If app targets are translucent, do not animate the background as it causes a visible
         // flicker when it resets itself at the end of its animation.
-        if (appTargetsAreTranslucent || !launcherClosing) {
-            animatorSet.play(appAnimator);
-        } else {
-            animatorSet.playTogether(appAnimator, getBackgroundAnimator());
-        }
+        animatorSet.play(appAnimator);
         return animatorSet;
     }
 
-    /**
-     * Returns animator that controls depth/blur of the background.
-     */
-    private ObjectAnimator getBackgroundAnimator() {
-        // When launching an app from overview that doesn't map to a task, we still want to just
-        // blur the wallpaper instead of the launcher surface as well
-        boolean allowBlurringLauncher = mLauncher.getStateManager().getState() != OVERVIEW
-                && BlurUtils.supportsBlursOnWindows();
-
-        LaunchDepthController depthController = new LaunchDepthController(mLauncher);
-        ObjectAnimator backgroundRadiusAnim = ObjectAnimator.ofFloat(depthController.stateDepth,
-                        MULTI_PROPERTY_VALUE, BACKGROUND_APP.getDepth(mLauncher))
-                .setDuration(APP_LAUNCH_DURATION);
-
-        if (allowBlurringLauncher) {
-            // Create a temporary effect layer, that lives on top of launcher, so we can apply
-            // the blur to it. The EffectLayer will be fullscreen, which will help with caching
-            // optimizations on the SurfaceFlinger side:
-            // - Results would be able to be cached as a texture
-            // - There won't be texture allocation overhead, because EffectLayers don't have
-            //   buffers
-            ViewRootImpl viewRootImpl = mLauncher.getDragLayer().getViewRootImpl();
-            SurfaceControl parent = viewRootImpl != null
-                    ? viewRootImpl.getSurfaceControl()
-                    : null;
-            SurfaceControl dimLayer = new SurfaceControl.Builder()
-                    .setName("Blur layer")
-                    .setParent(parent)
-                    .setOpaque(false)
-                    .setHidden(false)
-                    .setEffectLayer()
-                    .build();
-
-            backgroundRadiusAnim.addListener(AnimatorListeners.forEndCallback(() ->
-                    new SurfaceControl.Transaction().remove(dimLayer).apply()));
-        }
-
-        backgroundRadiusAnim.addListener(
-                AnimatorListeners.forEndCallback(depthController::dispose));
-
-        return backgroundRadiusAnim;
+    public static int getDuration(int duration) {
+        Float sAnimScale = 60.0f;
+        float animScale2 = Math.max(0.0f, Math.min(1.0f, sAnimScale / 100.0f));
+        sAnimScale = Float.valueOf(animScale2);
+        return (int) (duration * sAnimScale);
     }
 
     /**
@@ -1614,12 +1586,6 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
             } else if (!fromPredictiveBack) {
                 anim.play(new StaggeredWorkspaceAnim(mLauncher, velocity.y,
                         true /* animateOverviewScrim */, launcherView).getAnimators());
-
-                if (!areAllTargetsTranslucent(appTargets)) {
-                    anim.play(ObjectAnimator.ofFloat(mLauncher.getDepthController().stateDepth,
-                            MULTI_PROPERTY_VALUE,
-                            BACKGROUND_APP.getDepth(mLauncher), NORMAL.getDepth(mLauncher)));
-                }
 
                 // We play StaggeredWorkspaceAnim as a part of the closing window animation.
                 playWorkspaceReveal = false;

@@ -1577,8 +1577,7 @@ public abstract class RecentsView<ACTIVITY_TYPE extends StatefulActivity<STATE_T
         long now = SystemClock.uptimeMillis();
         if (now - mScrollLastHapticTimestamp > mScrollHapticMinGapMillis) {
             mScrollLastHapticTimestamp = now;
-            VibratorWrapper.INSTANCE.get(mContext).vibrate(SCROLL_VIBRATION_PRIMITIVE,
-                    SCROLL_VIBRATION_PRIMITIVE_SCALE, SCROLL_VIBRATION_FALLBACK);
+            VibratorWrapper.INSTANCE.get(getContext()).vibrate(VibratorWrapper.EFFECT_CLICK);
         }
     }
 
@@ -2656,10 +2655,6 @@ public abstract class RecentsView<ACTIVITY_TYPE extends StatefulActivity<STATE_T
         animateActionsViewIn();
 
         mCurrentGestureEndTarget = null;
-
-        switchToScreenshot(
-            () -> finishRecentsAnimation(true /* toRecents */, false /* shouldPip */,
-                    null));
     }
 
     /**
@@ -4162,6 +4157,9 @@ public abstract class RecentsView<ACTIVITY_TYPE extends StatefulActivity<STATE_T
 
     @SuppressWarnings("unused")
     private void dismissAllTasks(View view) {
+        if (view != null) {
+            VibratorWrapper.INSTANCE.get(getContext()).vibrate(VibratorWrapper.EFFECT_CLICK);
+        }
         runDismissAnimation(createAllTasksDismissAnimation(DISMISS_TASK_DURATION));
         mActivity.getStatsLogManager().logger().log(LAUNCHER_TASK_CLEAR_ALL);
     }
@@ -5348,8 +5346,6 @@ public abstract class RecentsView<ACTIVITY_TYPE extends StatefulActivity<STATE_T
         cleanupRemoteTargets();
 
         if (mRecentsAnimationController == null) {
-            Log.d(TestProtocol.INCORRECT_HOME_STATE, "finish recents animation but recents "
-                    + "animation controller was null. returning.");
             if (onFinishComplete != null) {
                 onFinishComplete.run();
             }
@@ -6021,7 +6017,7 @@ public abstract class RecentsView<ACTIVITY_TYPE extends StatefulActivity<STATE_T
     }
 
     private void doScrollScale() {
-        if (showAsGrid())
+        if (showAsGrid() || mActivity.getDeviceProfile().isTablet)
             return;
 
         //nick@lmo-20231004 if rotating launcher is enabled, rotation works differently
